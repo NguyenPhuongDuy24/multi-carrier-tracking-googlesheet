@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f0f4f8;
+    color: #2d3748;
+    font-size: 13px;
+    padding: 12px;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #e53e3e, #c53030);
+    color: white;
+    padding: 12px 14px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header .icon { font-size: 20px; }
+  .header h1 { font-size: 15px; font-weight: 700; }
+  .header p  { font-size: 10px; opacity: 0.85; margin-top: 2px; }
+
+  .card {
+    background: white;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #718096;
+    margin-bottom: 10px;
+  }
+
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 4px;
+    margin-top: 10px;
+  }
+  label:first-of-type { margin-top: 0; }
+
+  input, select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 7px;
+    font-size: 12px;
+    color: #2d3748;
+    outline: none;
+    transition: border-color 0.2s;
+    background: white;
+  }
+  input:focus, select:focus { border-color: #e53e3e; }
+  input::placeholder { color: #bbb; }
+
+  .btn {
+    width: 100%;
+    padding: 9px;
+    border: none;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #e53e3e, #c53030);
+    color: white;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-secondary { background: #edf2f7; color: #4a5568; }
+  .btn-secondary:hover { background: #e2e8f0; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+  .hint {
+    font-size: 10px;
+    color: #718096;
+    text-align: center;
+    margin: 6px 0 2px;
+    line-height: 1.5;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-item {
+    background: #f7fafc;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    border: 1.5px solid #e2e8f0;
+  }
+  .stat-number { font-size: 22px; font-weight: 800; line-height: 1; }
+  .stat-label  { font-size: 10px; color: #718096; margin-top: 3px; font-weight: 600; }
+  .stat-total     .stat-number { color: #4299e1; }
+  .stat-delivered .stat-number { color: #38a169; }
+  .stat-transit   .stat-number { color: #d69e2e; }
+  .stat-error     .stat-number { color: #e53e3e; }
+
+  .toast {
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 10px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.4;
+  }
+  .toast.success { background: #c6f6d5; color: #276749; display: flex; }
+  .toast.error   { background: #fed7d7; color: #9b2c2c; display: flex; }
+  .toast.info    { background: #bee3f8; color: #2a69ac; display: flex; }
+
+  .spinner {
+    width: 13px; height: 13px;
+    border: 2px solid rgba(255,255,255,0.35);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+    flex-shrink: 0;
+  }
+  .spinner-dark {
+    border-color: rgba(0,0,0,0.15);
+    border-top-color: #4a5568;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="icon">🚚</div>
+  <div>
+    <h1>17TRACK Tracker</h1>
+    <p>Quản lý đơn hàng Trung Quốc</p>
+  </div>
+</div>
+
+<!-- Thêm đơn hàng -->
+<div class="card">
+  <div class="card-title">➕ Thêm mã vận đơn</div>
+
+  <label>Mã vận đơn</label>
+  <input type="text" id="trackingNum" placeholder="SF6093478359952">
+
+  <label>4 số cuối số điện thoại</label>
+  <input type="text" id="phoneNum" placeholder="1234" maxlength="4">
+
+  <label>Hãng vận chuyển</label>
+  <select id="carrierCode">
+    <option value="190766">SF Express (顺丰) — 190766</option>
+    <option value="3001">China Post — 3001</option>
+    <option value="3002">EMS China — 3002</option>
+    <option value="3013">YTO Express — 3013</option>
+    <option value="3005">ZTO Express — 3005</option>
+    <option value="3006">STO Express — 3006</option>
+    <option value="3007">Yunda Express — 3007</option>
+    <option value="">Tự nhận diện</option>
+  </select>
+
+  <button class="btn btn-primary" id="btnAdd" onclick="addTracking()">
+    <span id="addIcon">➕</span>
+    <span id="addText">Thêm vào Sheet</span>
+    <div class="spinner" id="addSpinner"></div>
+  </button>
+  <div class="toast" id="toastAdd"></div>
+</div>
+
+<!-- Cập nhật -->
+<div class="card">
+  <div class="card-title">🔄 Cập nhật trạng thái</div>
+
+  <button class="btn btn-secondary" id="btnRegister" onclick="doRegister()">
+    <span id="regIcon">📋</span>
+    <span id="regText">Bước 1: Đăng ký mã mới</span>
+    <div class="spinner spinner-dark" id="regSpinner"></div>
+  </button>
+
+  <p class="hint">↓ Sau bước 1, chờ 1–2 phút rồi bấm Bước 2</p>
+
+  <button class="btn btn-primary" id="btnUpdate" onclick="doGetInfo()">
+    <span id="updateIcon">🔄</span>
+    <span id="updateText">Bước 2: Lấy trạng thái</span>
+    <div class="spinner" id="updateSpinner"></div>
+  </button>
+
+  <button class="btn btn-secondary" style="margin-top:10px" onclick="loadStats()">
+    📊 Làm mới thống kê
+  </button>
+
+  <div class="toast" id="toastUpdate"></div>
+</div>
+
+<!-- Thống kê -->
+<div class="card">
+  <div class="card-title">📊 Thống kê</div>
+  <div class="stats">
+    <div class="stat-item stat-total">
+      <div class="stat-number" id="statTotal">—</div>
+      <div class="stat-label">Tổng đơn</div>
+    </div>
+    <div class="stat-item stat-delivered">
+      <div class="stat-number" id="statDelivered">—</div>
+      <div class="stat-label">Đã giao</div>
+    </div>
+    <div class="stat-item stat-transit">
+      <div class="stat-number" id="statTransit">—</div>
+      <div class="stat-label">Đang đi</div>
+    </div>
+    <div class="stat-item stat-error">
+      <div class="stat-number" id="statError">—</div>
+      <div class="stat-label">Có vấn đề</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.onload = function() { loadStats(); };
+
+  function addTracking() {
+    var num     = document.getElementById('trackingNum').value.trim();
+    var phone   = document.getElementById('phoneNum').value.trim();
+    var carrier = document.getElementById('carrierCode').value;
+
+    if (!num)                         { showToast('toastAdd', 'error', '⚠️ Nhập mã vận đơn!'); return; }
+    if (!phone || phone.length !== 4) { showToast('toastAdd', 'error', '⚠️ Nhập đúng 4 số cuối SĐT!'); return; }
+
+    setBtnLoading('btnAdd', 'addSpinner', 'addIcon', 'addText', true, 'Đang thêm...');
+
+    google.script.run
+      .withSuccessHandler(function(r) {
+        setBtnLoading('btnAdd', 'addSpinner', 'addIcon', 'addText', false, 'Thêm vào Sheet');
+        if (r.success) {
+          showToast('toastAdd', 'success', '✅ Đã thêm: ' + num);
+          document.getElementById('trackingNum').value = '';
+          document.getElementById('phoneNum').value    = '';
+          loadStats();
+        } else {
+          showToast('toastAdd', 'error', '❌ ' + r.message);
+        }
+      })
+      .withFailureHandler(function(err) {
+        setBtnLoading('btnAdd', 'addSpinner', 'addIcon', 'addText', false, 'Thêm vào Sheet');
+        showToast('toastAdd', 'error', '❌ ' + err.message);
+      })
+      .addTrackingFromSidebar(num, phone, carrier);
+  }
+
+  function doRegister() {
+    setBtnLoading('btnRegister', 'regSpinner', 'regIcon', 'regText', true, 'Đang đăng ký...');
+    google.script.run
+      .withSuccessHandler(function(r) {
+        setBtnLoading('btnRegister', 'regSpinner', 'regIcon', 'regText', false, 'Bước 1: Đăng ký mã mới');
+        if (r.success) {
+          showToast('toastUpdate', 'success', '✅ Đã đăng ký ' + r.count + ' mã! Chờ 1–2 phút rồi bấm Bước 2.');
+        } else {
+          showToast('toastUpdate', 'error', '❌ ' + r.message);
+        }
+      })
+      .withFailureHandler(function(err) {
+        setBtnLoading('btnRegister', 'regSpinner', 'regIcon', 'regText', false, 'Bước 1: Đăng ký mã mới');
+        showToast('toastUpdate', 'error', '❌ ' + err.message);
+      })
+      .registerOnly();
+  }
+
+  function doGetInfo() {
+    setBtnLoading('btnUpdate', 'updateSpinner', 'updateIcon', 'updateText', true, 'Đang lấy dữ liệu...');
+    showToast('toastUpdate', 'info', '⏳ Đang xử lý...');
+    google.script.run
+      .withSuccessHandler(function(r) {
+        setBtnLoading('btnUpdate', 'updateSpinner', 'updateIcon', 'updateText', false, 'Bước 2: Lấy trạng thái');
+        if (r.success) {
+          showToast('toastUpdate', 'success', '✅ Đã cập nhật ' + r.count + ' đơn hàng!');
+          loadStats();
+        } else {
+          showToast('toastUpdate', 'error', '❌ ' + r.message);
+        }
+      })
+      .withFailureHandler(function(err) {
+        setBtnLoading('btnUpdate', 'updateSpinner', 'updateIcon', 'updateText', false, 'Bước 2: Lấy trạng thái');
+        showToast('toastUpdate', 'error', '❌ ' + err.message);
+      })
+      .getInfoOnly();
+  }
+
+  function loadStats() {
+    google.script.run
+      .withSuccessHandler(function(s) {
+        document.getElementById('statTotal').textContent     = s.total;
+        document.getElementById('statDelivered').textContent = s.delivered;
+        document.getElementById('statTransit').textContent   = s.transit;
+        document.getElementById('statError').textContent     = s.error;
+      })
+      .getStats();
+  }
+
+  function setBtnLoading(btnId, spinnerId, iconId, textId, loading, text) {
+    document.getElementById(btnId).disabled          = loading;
+    document.getElementById(spinnerId).style.display = loading ? 'block' : 'none';
+    document.getElementById(iconId).style.display    = loading ? 'none'  : 'inline';
+    document.getElementById(textId).textContent      = text;
+  }
+
+  function showToast(id, type, msg) {
+    var el = document.getElementById(id);
+    el.className   = 'toast ' + type;
+    el.textContent = msg;
+    if (type !== 'info') {
+      setTimeout(function() { el.style.display = 'none'; }, 5000);
+    }
+  }
+</script>
+</body>
+</html>
