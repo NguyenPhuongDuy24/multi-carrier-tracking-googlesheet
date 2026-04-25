@@ -99,25 +99,6 @@
     line-height: 1.5;
   }
 
-  .stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .stat-item {
-    background: #f7fafc;
-    border-radius: 8px;
-    padding: 10px;
-    text-align: center;
-    border: 1.5px solid #e2e8f0;
-  }
-  .stat-number { font-size: 22px; font-weight: 800; line-height: 1; }
-  .stat-label  { font-size: 10px; color: #718096; margin-top: 3px; font-weight: 600; }
-  .stat-total     .stat-number { color: #4299e1; }
-  .stat-delivered .stat-number { color: #38a169; }
-  .stat-transit   .stat-number { color: #d69e2e; }
-  .stat-error     .stat-number { color: #e53e3e; }
-
   .toast {
     padding: 9px 12px;
     border-radius: 8px;
@@ -147,6 +128,33 @@
     border-top-color: #4a5568;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  .custom-select { position: relative; width: 100%; }
+  .select-selected {
+    width: 100%; padding: 8px 10px; border: 1.5px solid #e2e8f0; border-radius: 7px;
+    font-size: 12px; background: white; cursor: pointer; display: flex; justify-content: space-between;
+    align-items: center; color: #2d3748; transition: border-color 0.2s;
+  }
+  .select-selected:after { content: "▼"; font-size: 10px; color: #718096; }
+  .select-items {
+    position: absolute; background: white; top: 100%; left: 0; right: 0; z-index: 99;
+    border: 1px solid #e2e8f0; border-radius: 7px; margin-top: 4px;
+    max-height: 220px; overflow-y: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  .select-hide { display: none; }
+  .select-items .option {
+    padding: 8px 10px; cursor: pointer; font-size: 12px; border-bottom: 1px solid #f7fafc;
+  }
+  .select-items .option:last-child { border-bottom: none; }
+  .select-items .option:hover { background: #edf2f7; color: #c53030; font-weight: 600; }
+  .search-box {
+    position: sticky; top: 0; background: white; padding: 6px; border-bottom: 1px solid #e2e8f0; z-index: 100;
+  }
+  .search-box input {
+    width: 100%; padding: 6px 8px; border: 1px solid #cbd5e0; border-radius: 5px;
+    font-size: 12px; outline: none; margin: 0;
+  }
+  .search-box input:focus { border-color: #e53e3e; }
 </style>
 </head>
 <body>
@@ -156,35 +164,52 @@
   <div class="icon">🚚</div>
   <div>
     <h1>17TRACK Tracker</h1>
-    <p>Quản lý đơn hàng Trung Quốc</p>
+    <p>Quản lý đa đơn hàng vận chuyển</p>
   </div>
+</div>
+
+<!-- Cài đặt API Key -->
+<div class="card">
+  <div class="card-title">⚙️ Cài đặt hệ thống</div>
+  <label>API Key 17TRACK</label>
+  <input type="password" id="apiKeyInput" placeholder="Nhập API Key vào đây...">
+  <button class="btn btn-secondary" id="btnSaveKey" onclick="saveApiKey()">
+    <span id="keyIcon">💾</span>
+    <span id="keyText">Lưu API Key</span>
+    <div class="spinner spinner-dark" id="keySpinner"></div>
+  </button>
+  <div class="toast" id="toastKey"></div>
 </div>
 
 <!-- Thêm đơn hàng -->
 <div class="card">
-  <div class="card-title">➕ Thêm mã vận đơn</div>
+  <div class="card-title">➕ Thêm & Tra cứu nhanh</div>
 
   <label>Mã vận đơn</label>
   <input type="text" id="trackingNum" placeholder="SF6093478359952">
 
-  <label>4 số cuối số điện thoại</label>
-  <input type="text" id="phoneNum" placeholder="1234" maxlength="4">
+  <label>4 số cuối số điện thoại (Tùy chọn)</label>
+  <input type="text" id="phoneNum" placeholder="Nhập 4 số hoặc bỏ trống" maxlength="4">
 
   <label>Hãng vận chuyển</label>
-  <select id="carrierCode">
-    <option value="190766">SF Express (顺丰) — 190766</option>
-    <option value="3001">China Post — 3001</option>
-    <option value="3002">EMS China — 3002</option>
-    <option value="3013">YTO Express — 3013</option>
-    <option value="3005">ZTO Express — 3005</option>
-    <option value="3006">STO Express — 3006</option>
-    <option value="3007">Yunda Express — 3007</option>
-    <option value="">Tự nhận diện</option>
-  </select>
+  <div class="custom-select" id="customSelect">
+    <div class="select-selected" id="selectedCarrierText" onclick="toggleDropdown()">Tự nhận diện</div>
+    <div class="select-items select-hide" id="selectItems">
+      <div class="search-box">
+        <input type="text" id="carrierSearch" placeholder="🔍 Tìm hãng..." onkeyup="filterCarriers()" onclick="event.stopPropagation()">
+      </div>
+      <div class="option" onclick="selectOption('', 'Tự nhận diện')">Tự nhận diện</div>
+    </div>
+  </div>
+  <input type="hidden" id="carrierCode" value="">
+  
+  <div id="customCarrierDiv" style="display: none; margin-top: 8px;">
+    <input type="text" id="customCarrierCode" placeholder="Nhập mã hãng (VD: 100017)">
+  </div>
 
   <button class="btn btn-primary" id="btnAdd" onclick="addTracking()">
     <span id="addIcon">➕</span>
-    <span id="addText">Thêm vào Sheet</span>
+    <span id="addText">Thêm & Tra cứu</span>
     <div class="spinner" id="addSpinner"></div>
   </button>
   <div class="toast" id="toastAdd"></div>
@@ -192,7 +217,7 @@
 
 <!-- Cập nhật -->
 <div class="card">
-  <div class="card-title">🔄 Cập nhật trạng thái</div>
+  <div class="card-title">🔄 Cập nhật toàn bộ bảng</div>
 
   <button class="btn btn-secondary" id="btnRegister" onclick="doRegister()">
     <span id="regIcon">📋</span>
@@ -208,66 +233,87 @@
     <div class="spinner" id="updateSpinner"></div>
   </button>
 
-  <button class="btn btn-secondary" style="margin-top:10px" onclick="loadStats()">
-    📊 Làm mới thống kê
-  </button>
-
   <div class="toast" id="toastUpdate"></div>
 </div>
 
-<!-- Thống kê -->
-<div class="card">
-  <div class="card-title">📊 Thống kê</div>
-  <div class="stats">
-    <div class="stat-item stat-total">
-      <div class="stat-number" id="statTotal">—</div>
-      <div class="stat-label">Tổng đơn</div>
-    </div>
-    <div class="stat-item stat-delivered">
-      <div class="stat-number" id="statDelivered">—</div>
-      <div class="stat-label">Đã giao</div>
-    </div>
-    <div class="stat-item stat-transit">
-      <div class="stat-number" id="statTransit">—</div>
-      <div class="stat-label">Đang đi</div>
-    </div>
-    <div class="stat-item stat-error">
-      <div class="stat-number" id="statError">—</div>
-      <div class="stat-label">Có vấn đề</div>
-    </div>
-  </div>
-</div>
-
 <script>
-  window.onload = function() { loadStats(); };
+  window.onload = function() { 
+    loadApiKey(); // Tải API Key khi mở
+    loadCarrierList(); // Tải danh sách hãng
+    
+    // Bắt sự kiện nhấn phím Enter ở các ô nhập liệu
+    var inputs = ['trackingNum', 'phoneNum', 'customCarrierCode'];
+    inputs.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            addTracking();
+          }
+        });
+      }
+    });
+  };
+
+  function loadApiKey() {
+    google.script.run
+      .withSuccessHandler(function(key) {
+        if(key) document.getElementById('apiKeyInput').value = key;
+      })
+      .getApiKey();
+  }
+
+  function saveApiKey() {
+    var key = document.getElementById('apiKeyInput').value.trim();
+    if (!key) { showToast('toastKey', 'error', '⚠️ Vui lòng nhập API Key!'); return; }
+
+    setBtnLoading('btnSaveKey', 'keySpinner', 'keyIcon', 'keyText', true, 'Đang lưu...');
+    google.script.run
+      .withSuccessHandler(function(r) {
+        setBtnLoading('btnSaveKey', 'keySpinner', 'keyIcon', 'keyText', false, 'Lưu API Key');
+        if (r.success) showToast('toastKey', 'success', '✅ ' + r.message);
+      })
+      .withFailureHandler(function(err) {
+        setBtnLoading('btnSaveKey', 'keySpinner', 'keyIcon', 'keyText', false, 'Lưu API Key');
+        showToast('toastKey', 'error', '❌ Lỗi: ' + err.message);
+      })
+      .saveApiKey(key);
+  }
 
   function addTracking() {
     var num     = document.getElementById('trackingNum').value.trim();
     var phone   = document.getElementById('phoneNum').value.trim();
     var carrier = document.getElementById('carrierCode').value;
 
-    if (!num)                         { showToast('toastAdd', 'error', '⚠️ Nhập mã vận đơn!'); return; }
-    if (!phone || phone.length !== 4) { showToast('toastAdd', 'error', '⚠️ Nhập đúng 4 số cuối SĐT!'); return; }
+    if (carrier === 'custom') {
+      carrier = document.getElementById('customCarrierCode').value.trim();
+      if (!carrier || isNaN(carrier)) { showToast('toastAdd', 'error', '⚠️ Vui lòng nhập mã hãng hợp lệ (chỉ nhập số)!'); return; }
+    }
 
-    setBtnLoading('btnAdd', 'addSpinner', 'addIcon', 'addText', true, 'Đang thêm...');
+    if (!num)                        { showToast('toastAdd', 'error', '⚠️ Nhập mã vận đơn!'); return; }
+    if (phone && phone.length !== 4) { showToast('toastAdd', 'error', '⚠️ Nhập đúng 4 số cuối SĐT (hoặc bỏ trống)!'); return; }
+
+    setBtnLoading('btnAdd', 'addSpinner', 'addIcon', 'addText', true, 'Đang xử lý...');
+    showToast('toastAdd', 'info', '⏳ Đang lấy dữ liệu (Khoảng 5-10s)...');
 
     google.script.run
       .withSuccessHandler(function(r) {
-        setBtnLoading('btnAdd', 'addSpinner', 'addIcon', 'addText', false, 'Thêm vào Sheet');
+        setBtnLoading('btnAdd', 'addSpinner', 'addIcon', 'addText', false, 'Thêm & Tra cứu');
         if (r.success) {
-          showToast('toastAdd', 'success', '✅ Đã thêm: ' + num);
+          showToast('toastAdd', 'success', r.message);
           document.getElementById('trackingNum').value = '';
           document.getElementById('phoneNum').value    = '';
-          loadStats();
+          document.getElementById('trackingNum').focus();
         } else {
-          showToast('toastAdd', 'error', '❌ ' + r.message);
+          showToast('toastAdd', 'error', r.message);
         }
       })
       .withFailureHandler(function(err) {
-        setBtnLoading('btnAdd', 'addSpinner', 'addIcon', 'addText', false, 'Thêm vào Sheet');
+        setBtnLoading('btnAdd', 'addSpinner', 'addIcon', 'addText', false, 'Thêm & Tra cứu');
         showToast('toastAdd', 'error', '❌ ' + err.message);
       })
-      .addTrackingFromSidebar(num, phone, carrier);
+      .addAndTrackSingle(num, phone, carrier);
   }
 
   function doRegister() {
@@ -296,7 +342,6 @@
         setBtnLoading('btnUpdate', 'updateSpinner', 'updateIcon', 'updateText', false, 'Bước 2: Lấy trạng thái');
         if (r.success) {
           showToast('toastUpdate', 'success', '✅ Đã cập nhật ' + r.count + ' đơn hàng!');
-          loadStats();
         } else {
           showToast('toastUpdate', 'error', '❌ ' + r.message);
         }
@@ -308,15 +353,91 @@
       .getInfoOnly();
   }
 
-  function loadStats() {
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('.custom-select')) {
+      var dropdown = document.getElementById('selectItems');
+      if (dropdown && !dropdown.classList.contains('select-hide')) {
+        dropdown.classList.add('select-hide');
+      }
+    }
+  });
+
+  function loadCarrierList() {
     google.script.run
-      .withSuccessHandler(function(s) {
-        document.getElementById('statTotal').textContent     = s.total;
-        document.getElementById('statDelivered').textContent = s.delivered;
-        document.getElementById('statTransit').textContent   = s.transit;
-        document.getElementById('statError').textContent     = s.error;
+      .withSuccessHandler(function(list) {
+        var selectItems = document.getElementById('selectItems');
+        selectItems.innerHTML = '';
+        
+        // Thêm ô tìm kiếm
+        var searchBox = document.createElement('div');
+        searchBox.className = 'search-box';
+        searchBox.innerHTML = '<input type="text" id="carrierSearch" placeholder="🔍 Tìm hãng..." onkeyup="filterCarriers()" onclick="event.stopPropagation()">';
+        selectItems.appendChild(searchBox);
+        
+        // Mục mặc định
+        var optAuto = document.createElement('div');
+        optAuto.className = 'option';
+        optAuto.textContent = 'Tự nhận diện';
+        optAuto.onclick = function() { selectOption('', 'Tự nhận diện'); };
+        selectItems.appendChild(optAuto);
+        
+        // Render danh sách động từ Sheet
+        for (var i = 0; i < list.length; i++) {
+          var opt = document.createElement('div');
+          opt.className = 'option';
+          opt.textContent = list[i].name;
+          (function(val, txt) { // Giữ scope biến
+            opt.onclick = function() { selectOption(val, txt); };
+          })(list[i].code, list[i].name);
+          selectItems.appendChild(opt);
+        }
+        
+        // Thêm mục tùy chỉnh ở cuối
+        var optCustom = document.createElement('div');
+        optCustom.className = 'option';
+        optCustom.textContent = '➕ Khác (Nhập mã thủ công)...';
+        optCustom.onclick = function() { selectOption('custom', '➕ Khác (Nhập mã thủ công)...'); };
+        selectItems.appendChild(optCustom);
       })
-      .getStats();
+      .getCarrierList();
+  }
+
+  function toggleDropdown() {
+    var dropdown = document.getElementById('selectItems');
+    dropdown.classList.toggle('select-hide');
+    if (!dropdown.classList.contains('select-hide')) {
+      document.getElementById('carrierSearch').focus();
+    }
+  }
+
+  function selectOption(value, text) {
+    document.getElementById('selectedCarrierText').textContent = text;
+    document.getElementById('carrierCode').value = value;
+    document.getElementById('selectItems').classList.add('select-hide');
+    document.getElementById('carrierSearch').value = '';
+    filterCarriers();
+    toggleCustomCarrier();
+
+    // Tự động chạy nếu đã nhập mã vận đơn (và không phải mục Nhập thủ công)
+    var num = document.getElementById('trackingNum').value.trim();
+    if (num && value !== 'custom') {
+      addTracking();
+    }
+  }
+
+  function filterCarriers() {
+    var filter = document.getElementById('carrierSearch').value.toLowerCase();
+    var options = document.getElementById('selectItems').getElementsByClassName('option');
+    for (var i = 0; i < options.length; i++) {
+      var txtValue = options[i].textContent || options[i].innerText;
+      options[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+    }
+  }
+
+  function toggleCustomCarrier() {
+    var select = document.getElementById('carrierCode');
+    var customDiv = document.getElementById('customCarrierDiv');
+    customDiv.style.display = (select.value === 'custom') ? 'block' : 'none';
   }
 
   function setBtnLoading(btnId, spinnerId, iconId, textId, loading, text) {
